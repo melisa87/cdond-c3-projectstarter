@@ -101,6 +101,7 @@ jobs:
             cd backend
             npm install
             npm run test
+      - slack/status
       
             
   scan-frontend:
@@ -114,6 +115,7 @@ jobs:
           name: Scan Frontend
           command: |
             cd frontend
+            npm install
             npm audit --audit-level=critical
       - slack/status
 
@@ -128,6 +130,7 @@ jobs:
           name: Scan Backend
           command: |
             cd backend
+            npm install
             npm audit --audit-level=critical
       - slack/status
 
