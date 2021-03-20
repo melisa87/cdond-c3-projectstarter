@@ -101,7 +101,7 @@ jobs:
             cd backend
             npm install
             npm run test
-      - slack/status
+      #- slack/status
       
             
   scan-frontend:
@@ -117,7 +117,7 @@ jobs:
             cd frontend
             npm install
             npm audit --audit-level=critical
-      - slack/status
+      #- slack/status
 
   scan-backend:
     docker:
@@ -132,7 +132,7 @@ jobs:
             cd backend
             npm install
             npm audit --audit-level=critical
-      - slack/status
+      #- slack/status
 
   #deploy-infrastructure:
     #docker:
