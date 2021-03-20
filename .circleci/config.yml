@@ -132,7 +132,7 @@ jobs:
             cd backend
             npm install
             npm audit --audit-level=critical
-      #- slack/status
+      - slack/status
 
   #deploy-infrastructure:
     #docker:
