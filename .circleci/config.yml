@@ -158,22 +158,23 @@ jobs:
               --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"   
 
-      #- run:
-          #name: Add back-end ip to ansible inventory
-          #command: |
-            #BACKEND_IP=$(aws ec2 describe-instances \
-            #--query 'Reservations[*].Instances[*].PublicIpAddress' \
-            #--filters "Name=tag:project,Values=backend-udapeople" \
-            #--output text) 
-            #echo $BACKEND_IP >> .circleci/ansible/inventory.txt
-            #curl -H "Content-Type: text/plain" -H "token: c4b123e0-8be7-4581-94a6-421837038b28" \
-            #--request PUT \
-            #--data $BACKEND_IP \
-            #https://api.memstash.io/values/backend_ip
-      #- persist_to_workspace:
-          #root: ~/
-          #paths:
-            #- project/.circleci/ansible/inventory.txt
+      - run:
+          name: Add back-end ip to ansible inventory
+          command: |
+            BACKEND_IP=$(aws ec2 describe-instances \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --filters "Name=tag:project,Values=udapeople" \
+            --output text) 
+            echo $BACKEND_IP >> .circleci/ansible/inventory.txt
+            curl -H "Content-Type: text/plain" -H "token: e82f2c03-85db-4294-941c-178d1071af39" \
+            --request PUT \
+            --data $BACKEND_IP \
+            https://api.memstash.io/values/backend_ip
+            cat .circleci/ansible/inventory.txt
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - project/.circleci/ansible/inventory.txt
       # Here's where you will add some code to rollback on failure      
 
   #configure-infrastructure:
