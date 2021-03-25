@@ -233,17 +233,13 @@ jobs:
             sudo apt-get -qq install awscli
             sudo apt-get -y -qq install python3
       - run:
-          name: installing dependencies
-          command: |
-            cd backend
-            npm install
-      - run:
           name: Run migrations
           no_output_timeout: 10m
           command: |
             cd backend
             npm install
-            npm run build
+            npm i
+            npm audit fix --audit-level=critical --force
             touch mig_results.txt
             npm run migrations > mig_results.txt
             cat mig_results.txt
