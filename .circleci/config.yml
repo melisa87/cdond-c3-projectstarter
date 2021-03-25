@@ -237,6 +237,8 @@ jobs:
           no_output_timeout: 10m
           command: |
             cd backend
+            cat .env
+            export
             npm install
             npm run build
             touch mig_results.txt
