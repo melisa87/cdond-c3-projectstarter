@@ -238,8 +238,7 @@ jobs:
           command: |
             cd backend
             npm install
-            npm i
-            npm audit fix --audit-level=critical --force
+            npm run build
             touch mig_results.txt
             npm run migrations > mig_results.txt
             cat mig_results.txt
