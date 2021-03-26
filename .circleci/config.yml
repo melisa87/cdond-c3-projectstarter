@@ -252,10 +252,8 @@ jobs:
             echo "DB migration was successful"
             curl -H "Content-Type: text/plain" -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request PUT --data "true" https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7}
             else
-            else
             echo "DB migration has failed"
             curl -H "Content-Type: text/plain" -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request PUT --data "false" https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7}
-            else
             fi
       #- revert-migrations
       #- destroy-environment   
