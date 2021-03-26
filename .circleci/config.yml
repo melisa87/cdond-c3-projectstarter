@@ -340,7 +340,7 @@ jobs:
       #- destroy-environment # Rollback on failure 
   smoke-test:
     docker:
-      - image: python:3.7-alpine3.11 
+      - image: warnerbros/node-awscli:12-alpine
     steps:
       - checkout
       - run:
@@ -351,22 +351,22 @@ jobs:
             pip install awscli
       - run:
           name: Backend smoke test.
-          command: |
-            BACKEND_IP=$(aws ec2 describe-instances \
-            --filters "Name=tag:project, Values=backend-udapeople" \
+          command: |  
+            backendURL=$(aws ec2 describe-instances \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
-            --output text)
-            URL="http://${BACKEND_IP}:3030/api/status"
+            --filters "Name=tag:project,Values=udapeople-backend" \
+            --output text) 
+            URL="http://${backendURL}:3030/api/status"
             echo $URL
             curl $URL
       - run:
           name: Frontend smoke test.
           command: |
-            BACKEND_IP=$(aws ec2 describe-instances \
-            --filters "Name=tag:project, Values=udapeople-backend" \
+           backendURL=$(aws ec2 describe-instances \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
-            --output text)
-            URL="http://${BACKEND_IP}:3030/api/status"
+            --filters "Name=tag:project,Values=udapeople-backend" \
+            --output text) 
+            URL="http://${backendURL}:3030/api/status"
             if curl -s ${URL} | grep "Welcome"
             then
               return 1
