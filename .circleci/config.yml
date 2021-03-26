@@ -283,7 +283,8 @@ jobs:
             cd frontend
             npm install
             npm run build
-            aws s3 cp ./dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
+            #aws s3 cp ./dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
+            aws s3 cp ./dist s3://udapeople-62c376d --recursive
             npm install webpack-dev-server -g
       #- revert-migrations
       #- destroy-environment 
