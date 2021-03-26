@@ -258,26 +258,37 @@ jobs:
       #- revert-migrations
       #- destroy-environment   
 
-  #deploy-frontend:
-    #docker:
-      #- image: amazon/aws-cli
-    #steps:
-      # Checkout code from git
-      #- run:
-          #name: Install dependencies
-          #command: |
-            # your code here
-      #- run:
-          #name: Get backend url
-          #command: |
-            # your code here
-            #export API_URL="http://${BACKEND_IP}:3030"
-            #echo "${API_URL}"
-      #- run:
-          #name: Deploy frontend objects
-          #command: |
-            # your code here
-      # Here's where you will add some code to rollback on failure      
+  deploy-frontend:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout   
+      - run:
+          name: Install dependencies
+          command: |
+            yum -y install tar gzip 
+            curl -sL https://rpm.nodesource.com/setup_lts.x | bash -
+            yum -y install nodejs 
+      - run:
+          name: Get backend url
+          command: |
+            BACKEND_IP=$(curl -H "token: 21655ba8-a199-4ae9-8b32-0cf4daa7e3a3" \
+                        --request GET https://api.memstash.io/values/backend_ip)
+            export API_URL="http://${BACKEND_IP}:3030"
+            echo API_URL="http://${BACKEND_IP}:3030" >> "frontend/.env"
+            echo "${API_URL}"
+      - run:
+          name: Deploy frontend objects
+          command: |
+            cd frontend
+            npm install
+            npm run build
+            aws s3 cp ./dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
+            npm install webpack-dev-server -g
+      #- revert-migrations
+      #- destroy-environment 
+   
+    
                     
   #deploy-backend:
     #docker:
@@ -374,9 +385,9 @@ workflows:
               #only: [master]
       #- configure-infrastructure
           #requires: [deploy-infrastructure]
-      - run-migrations
+      #- run-migrations#ne zaboravi dvotacku poslije JOBs
           #requires: [configure-infrastructure]
-      #- deploy-frontend:
+      - deploy-frontend
          #requires: [run-migrations]
       #- deploy-backend:
           #requires: [run-migrations]
