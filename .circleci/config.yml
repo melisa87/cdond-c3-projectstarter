@@ -6,16 +6,14 @@ orbs:
 commands:
   destroy-environment:
     description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
-    parameters:
-      # Add parameter here   
     steps:
       - run:
           name: Destroy environments
           when: on_fail
           command: |
-            # Your code here
-            exit 1
-      
+            aws cloudformation delete-stack --stack-name udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}
+            aws cloudformation delete-stack --stack-name udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}
+            aws s3 rb s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --force    
 
   revert-migrations:
     description: Revert the last migration if successfully run in the current workflow.
@@ -25,15 +23,16 @@ commands:
       - run:
           name: Revert migrations
           # Add when this will run
+          when: on_fail
           command: |
             # Curl command here to see if there was a successful migration associated with the workflow id, store result in SUCCESS variable
-            SUCCESS = 1
+            SUCCESS=$(curl -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request GET https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7})
+            echo ${SUCCESS}
             if(( $SUCCESS==1 )); 
             then
-            #  cd ~/project/backend
-            #  npm install
-            #  Add revert code here. You can find this in the Getting Started section.
-              exit 1
+            cd ~/project/backend
+            npm install
+            npm run migrations:revert
             fi
             
 jobs:
@@ -102,8 +101,7 @@ jobs:
             npm install
             npm run test
       #- slack/status
-      
-            
+                
   scan-frontend:
     docker:
       - image: circleci/node:13.8.0
@@ -178,7 +176,8 @@ jobs:
           root: ~/
           paths:
             - project/.circleci/ansible/inventory.txt
-      # Here's where you will add some code to rollback on failure      
+      - revert-migrations
+      - destroy-environment     
 
   configure-infrastructure:
       docker:
@@ -196,7 +195,6 @@ jobs:
               pip install awscli
         - run:
             name: Set up inventory file
-            #echo "[web]" >> inventory.txt
             command: |
               cd .circleci/ansible
               URLS=$(curl -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request GET https://api.memstash.io/values/backend_ip)
@@ -219,7 +217,8 @@ jobs:
               echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
               cd .circleci/ansible
               ansible-playbook -i inventory.txt configure-server.yml
-        #- destroy-environment     
+        - revert-migrations
+        - destroy-environment   
 
   run-migrations:
     docker:
@@ -251,12 +250,15 @@ jobs:
             then
             echo "DB migration was successful"
             curl -H "Content-Type: text/plain" -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request PUT --data "true" https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7}
+            DBWorkFlowID=$(curl -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request GET https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7})
+            echo 'Migration Success Then Revert start workflow = ' $DBWorkFlowID;
             else
             echo "DB migration has failed"
             curl -H "Content-Type: text/plain" -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request PUT --data "false" https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7}
             fi
-      #- revert-migrations
-      #- destroy-environment   
+      - run: echo "$(pipelineID) == << pipeline.id >>"
+      - revert-migrations
+      - destroy-environment   
 
   deploy-frontend:
     docker:
@@ -285,11 +287,9 @@ jobs:
             npm run build
             aws s3 cp ./dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
             npm install webpack-dev-server -g
-      #- revert-migrations
-      #- destroy-environment 
-   
-    
-                    
+      - revert-migrations
+      - destroy-environment 
+                   
   deploy-backend:
     docker:
       - image: python:3.7-alpine3.11
@@ -335,8 +335,9 @@ jobs:
              --request GET https://api.memstash.io/values/backend_ip) >> ~/project/.circleci/ansible/inventory.txt
             ansible-playbook -i inventory.txt deploy-backend.yml --ssh-common-args='-o StrictHostKeyChecking=no'
        # Rollback on failure  
-      #- revert-migrations
-      #- destroy-environment # Rollback on failure 
+      - revert-migrations
+      - destroy-environment
+
   smoke-test:
     docker:
       - image: warnerbros/node-awscli:12-alpine
@@ -358,6 +359,7 @@ jobs:
             URL="http://${backendURL}:3030/api/status"
             echo $URL
             curl $URL
+
       - run:
           name: Frontend smoke test.
           command: |
@@ -368,48 +370,65 @@ jobs:
             URL="http://${backendURL}:3030/api/status"
             if curl -s ${URL} | grep "Welcome"
             then
-              return 1
+              return 0
             else
               return 1
             fi  
-      #- revert-migrations
-      #- destroy-environment # Rollback on failure
+      - revert-migrations
+      - destroy-environment
 
-  #cloudfront-update:
-    #docker:
-      #- image: amazon/aws-cli
-    #steps:
-      # Checkout code from git
-      #- run:
-          #name: Install dependencies
-          #command: |
-            # your code here
-      #- run:
-          #name: Update cloudfront distribution
-          #command: |
-            # your code here
-      # Here's where you will add some code to rollback on failure  
+  cloudfront-update:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+              yum install -y tar gzip curl
+      - run:
+          name: Store old WorkflowID in memstash for cleanup phase
+          working_directory: ./.circleci/files
+          command: |
+            OldWorkflowID=$(aws cloudformation \
+              list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
+              --no-paginate --output text)
+            curl -H "Content-Type: text/plain" -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request PUT --data "$OldWorkflowID" https://api.memstash.io/values/OldWorkflowID
+      - run:
+          name: Update cloudfront distribution
+          command: |
+              aws cloudformation deploy \
+                --template-file .circleci/files/cloudfront.yml \
+                --stack-name udapeople-cloudfront-production \
+                --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}" \
+                --tags project=udapeople
+      - revert-migrations
+      - destroy-environment
 
-#cleanup:
-    #docker:
-      # Docker image here
-    #steps:
-      # Checkout code from git
-      #- run:
-          #name: Get old stack workflow id
-          #command: |
-            # your code here
-            #export OldWorkflowID="the id here"
-            #export STACKS=[] #put the list of stacks here
-      #- run:
-          #name: Remove old stacks and files
-          #command: |
-           # if [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
-            #then
-              # your code here
-            #fi
-            
 
+  cleanup:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Promote the new deployment and delete the old one
+          command: |
+              OldWorkflowID=`curl -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request GET https://api.memstash.io/values/OldWorkflowID`
+              STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
+                --stack-status-filter CREATE_COMPLETE --no-paginate --output text))
+              CurrentWorkflowID=${CIRCLE_WORKFLOW_ID:0:7}
+              echo "oldWorkFlowID = $OldWorkflowID"
+              echo "currentWorkFlowID = $CurrentWorkflowID"
+              if [[ ${CurrentWorkflowID} != ${OldWorkflowID} ]]
+              then
+                echo "$OldWorkflowID!=$CurrentWorkflowID => deleting old version"
+                aws s3 rm s3://udapeople-$OldWorkflowID --recursive
+                aws cloudformation delete-stack --stack-name udapeople-backend-$OldWorkflowID
+                aws cloudformation delete-stack --stack-name udapeople-frontend-$OldWorkflowID
+              else
+                echo "Stach with ID $OldWorkflowID does not exist"
+              fi
 workflows:
   default:
     jobs:
@@ -438,7 +457,7 @@ workflows:
           requires: [run-migrations]
       - smoke-test:
           requires: [deploy-backend, deploy-frontend]
-      #- cloudfront-update:
-          #requires: [smoke-test]
-      #- cleanup:
-          #requires: [cloudfront-update]
+      - cloudfront-update:
+          requires: [smoke-test]
+      - cleanup:
+          requires: [cloudfront-update]
