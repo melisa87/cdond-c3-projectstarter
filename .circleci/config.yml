@@ -26,7 +26,7 @@ commands:
           when: on_fail
           command: |
             # Curl command here to see if there was a successful migration associated with the workflow id, store result in SUCCESS variable
-            SUCCESS=$(curl -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request GET https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7})
+            SUCCESS=$(curl -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request GET https://api.memstash.io/values/migration
             echo ${SUCCESS}
             if(( $SUCCESS==1 )); 
             then
@@ -249,14 +249,13 @@ jobs:
             if grep "has been executed successfully" mig_results.txt
             then
             echo "DB migration was successful"
-            curl -H "Content-Type: text/plain" -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request PUT --data "true" https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7}
-            DBWorkFlowID=$(curl -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request GET https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7})
+            curl -H "Content-Type: text/plain" -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request PUT --data "true" https://api.memstash.io/values/migration
+            DBWorkFlowID=$(curl -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request GET https://api.memstash.io/values/migration
             echo 'Migration Success Then Revert start workflow = ' $DBWorkFlowID;
             else
             echo "DB migration has failed"
-            curl -H "Content-Type: text/plain" -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request PUT --data "false" https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7}
+            curl -H "Content-Type: text/plain" -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request PUT --data "false" https://api.memstash.io/values/migration
             fi
-      - run: echo "$(pipelineID) == << pipeline.id >>"
       - revert-migrations
       - destroy-environment   
 
@@ -366,12 +365,14 @@ jobs:
             FRONTEND_URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-west-1.amazonaws.com/#/employees"
             if curl -s ${FRONTEND_URL} | grep "Welcome"
             then
-            return 1
+            return 0
+            echo "Frontend smoke test OK"
             else
             return 1
+            echo "Front end smoke test failed"
             fi
-      - revert-migrations
-      - destroy-environment
+      #- revert-migrations
+      #- destroy-environment
 
   cloudfront-update:
     docker:
@@ -453,7 +454,7 @@ workflows:
           requires: [run-migrations]
       - smoke-test:
           requires: [deploy-backend, deploy-frontend]
-      - cloudfront-update:
-          requires: [smoke-test]
-      - cleanup:
-          requires: [cloudfront-update]
+      #- cloudfront-update:
+          #requires: [smoke-test]
+      #- cleanup:
+          #requires: [cloudfront-update]
