@@ -196,9 +196,9 @@ jobs:
               pip install awscli
         - run:
             name: Set up inventory file
+            #echo "[web]" >> inventory.txt
             command: |
               cd .circleci/ansible
-              echo "[web]" >> inventory.txt
               URLS=$(curl -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request GET https://api.memstash.io/values/backend_ip)
               echo "$URLS" >> inventory.txt
               cat inventory.txt
@@ -433,7 +433,7 @@ workflows:
       - run-migrations:
           requires: [configure-infrastructure]
       - deploy-frontend:
-         requires: [run-migrations]
+         requires: [deploy-backend, run-migrations]
       - deploy-backend:
           requires: [run-migrations]
       - smoke-test:
