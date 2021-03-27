@@ -333,7 +333,7 @@ jobs:
             cd ~/project/.circleci/ansible
             echo $(curl -H "token: e82f2c03-85db-4294-941c-178d1071af39" \
              --request GET https://api.memstash.io/values/backend_ip) >> ~/project/.circleci/ansible/inventory.txt
-            ansible-playbook -i inventory.txt deploy-backend.yml
+            ansible-playbook -i inventory.txt deploy-backend.yml --ssh-common-args='-o StrictHostKeyChecking=no'
        # Rollback on failure  
       #- revert-migrations
       #- destroy-environment # Rollback on failure 
