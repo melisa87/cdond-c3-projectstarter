@@ -363,17 +363,13 @@ jobs:
       - run:
           name: Frontend smoke test.
           command: |
-           backendURL=$(aws ec2 describe-instances \
-            --query 'Reservations[*].Instances[*].PublicIpAddress' \
-            --filters "Name=tag:project,Values=udapeople-backend" \
-            --output text) 
-            URL="http://${backendURL}:3030/api/status"
-            if curl -s ${URL} | grep "Welcome"
+            FRONTEND_URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-west-1.amazonaws.com/#/employees"
+            if curl -s ${FRONTEND_URL} | grep "Welcome"
             then
-              return 0
+            return 1
             else
-              return 1
-            fi  
+            return 1
+            fi
       - revert-migrations
       - destroy-environment
 
