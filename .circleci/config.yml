@@ -13,7 +13,6 @@ commands:
           command: |
             aws cloudformation delete-stack --stack-name udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}
             aws cloudformation delete-stack --stack-name udapeople-backend-
-            echo $CIRCLE_WORKFLOW_ID:0:7
             aws s3 rb s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --force    
 
   revert-migrations:
@@ -27,7 +26,7 @@ commands:
           when: on_fail
           command: |
             # Curl command here to see if there was a successful migration associated with the workflow id, store result in SUCCESS variable
-            SUCCESS=$(curl -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request GET https://api.memstash.io/values/migration)
+            SUCCESS=$(curl -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request GET https://api.memstash.io/values/migration-${CIRCLE_WORKFLOW_ID:0:7})
             echo ${SUCCESS}
             if(( $SUCCESS==1 )); 
             then
@@ -252,12 +251,12 @@ jobs:
             if grep "has been executed successfully" mig_results.txt
             then
             echo "DB migration was successful"
-            curl -H "Content-Type: text/plain" -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request PUT --data "true" https://api.memstash.io/values/migration
-            DBWorkFlowID=$(curl -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request GET https://api.memstash.io/values/migration)
+            curl -H "Content-Type: text/plain" -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request PUT --data "true" https://api.memstash.io/values/migration-${CIRCLE_WORKFLOW_ID:0:7}
+            DBWorkFlowID=$(curl -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request GET https://api.memstash.io/values/migration-${CIRCLE_WORKFLOW_ID:0:7})
             echo $DBWorkFlowID;
             else
             echo "DB migration has failed"
-            curl -H "Content-Type: text/plain" -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request PUT --data "false" https://api.memstash.io/values/migration
+            curl -H "Content-Type: text/plain" -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request PUT --data "false" https://api.memstash.io/values/migration-${CIRCLE_WORKFLOW_ID:0:7}
             fi
       - revert-migrations
       - destroy-environment   
@@ -433,31 +432,31 @@ jobs:
 workflows:
   default:
     jobs:
-      #- build-frontend
-      #- build-backend
-      #- test-frontend:
-          #requires: [build-frontend]
-      #- test-backend:
-          #requires: [build-backend]
-      #- scan-backend:
-          #requires: [build-backend]
-      #- scan-frontend:
-          #requires: [build-frontend]
-      #- deploy-infrastructure:
-          #requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-          #filters:
-            #branches:
-              #only: [master]
-      #- configure-infrastructure:
-          #requires: [deploy-infrastructure]
-      #- run-migrations:
-          #requires: [configure-infrastructure]
-      #- deploy-frontend:
-         #requires: [deploy-backend, run-migrations]
-      #- deploy-backend:
-          #requires: [run-migrations]
-      - smoke-test
-          #requires: [deploy-backend, deploy-frontend]
+      - build-frontend
+      - build-backend
+      - test-frontend:
+          requires: [build-frontend]
+      - test-backend:
+          requires: [build-backend]
+      - scan-backend:
+          requires: [build-backend]
+      - scan-frontend:
+          requires: [build-frontend]
+      - deploy-infrastructure:
+          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+          filters:
+            branches:
+              only: [master]
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
+      - run-migrations:
+          requires: [configure-infrastructure]
+      - deploy-frontend:
+         requires: [deploy-backend, run-migrations]
+      - deploy-backend:
+          requires: [run-migrations]
+      - smoke-test:
+          requires: [deploy-backend, deploy-frontend]
       #- cloudfront-update:
           #requires: [smoke-test]
       #- cleanup:
