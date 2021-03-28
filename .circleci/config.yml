@@ -29,7 +29,7 @@ commands:
             SUCCESS=$(curl -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request GET https://api.memstash.io/values/migration-${CIRCLE_WORKFLOW_ID:0:7})
             echo $SUCCESS
             echo SUCCESS
-            if(( $SUCCESS==true )); 
+            if [[ $SUCCESS == true ]] 
             then
             cd ~/project/backend
             npm install
