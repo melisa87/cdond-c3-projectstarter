@@ -395,6 +395,7 @@ jobs:
       - run:
           name: Update cloudfront distribution
           command: |
+            pwd
             aws cloudformation deploy \
             --template-file cloudfront.yml \
             --stack-name production-distro \
