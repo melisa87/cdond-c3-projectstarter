@@ -250,8 +250,8 @@ jobs:
             then
             echo "DB migration was successful"
             curl -H "Content-Type: text/plain" -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request PUT --data "true" https://api.memstash.io/values/migration
-            DBWorkFlowID=$(curl -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request GET https://api.memstash.io/values/migration
-            echo 'Migration Success Then Revert start workflow = ' $DBWorkFlowID;
+            DBWorkFlowID=$(curl -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request GET https://api.memstash.io/values/migration)
+            echo $DBWorkFlowID;
             else
             echo "DB migration has failed"
             curl -H "Content-Type: text/plain" -H "token: e82f2c03-85db-4294-941c-178d1071af39" --request PUT --data "false" https://api.memstash.io/values/migration
