@@ -1,0 +1,7 @@
+
+URL01 Github https://github.com/melisa87/cdond-c3-projectstarter
+URL02 Public S3 Bucket http://udapeople-7d44b0f.s3-website-us-east-1.amazonaws.com
+URL03 CloudFront distribution http://d15tklnj2hmjvh.cloudfront.net
+URL04 http://ec2-54-89-181-99.compute-1.amazonaws.com:3030/api/status
+URL05 Prometheus Server http://ec2-54-237-77-40.compute-1.amazonaws.com:9090
+
